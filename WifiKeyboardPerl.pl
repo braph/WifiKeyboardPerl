@@ -79,29 +79,29 @@ my $WIFI_CNTRL = 17;
 my $WIFI_ALT   = 18;
 # keycodes mapped to wifi keyboard's one
 my %wifi_keyboard_mapping = (
-   'DEL'        => 8,        # Backspace
-   'Tab'        => 9,
-   'Escape'     => 'C27', 
-   'Enter'      => 13,       # 10?
+   'DEL'        =>  8,        # Backspace
+   'Tab'        =>  9,
+   'Escape'     =>  'C27', 
+   'Enter'      =>  13,       # 10?
 
-   'Up'         => 38,
-   'Down'       => 40,
-   'Right'      => 39,
-   'Left'       => 37,
+   'Up'         =>  38,
+   'Down'       =>  40,
+   'Right'      =>  39,
+   'Left'       =>  37,
 
-   'Home'       => 36,
-   'Insert'     => 155,   
-   'Delete'     => 'C127',
-   'End'        => 35,
-   'PageUp'     => 33,
-   'PageDown'   => 34,
+   'Home'       =>  36,
+   'Insert'     =>  155,   
+   'Delete'     =>  'C127',
+   'End'        =>  35,
+   'PageUp'     =>  33,
+   'PageDown'   =>  34,
 
    # special phone keys
-   'PhoneCenter'      => 112,  # F1
-   'PhoneMenu'        => 113,  # F2
-   'PhoneSearch'      => 114,  # F3
-   'PhoneVolumeUp'    => 120,  # F9
-   'PhoneVolumeDown'  => 121,  # F10
+   'PhoneCenter'      =>  112,  # F1
+   'PhoneMenu'        =>  113,  # F2
+   'PhoneSearch'      =>  114,  # F3
+   'PhoneVolumeUp'    =>  120,  # F9
+   'PhoneVolumeDown'  =>  121,  # F10
 );
 
 # Global keybindings
@@ -112,13 +112,13 @@ my %global_keymap = (
 # Keybindings with prefixx
 my %prefix_keymap = (
    # key => command_name
-   ':'      =>   'read_command',
-   'g'      =>   'send_prefix',
-   'Q'      =>   'quit',
-   'e'      =>   'edit_text',
-   'r'      =>   'raw',
-   'l'      =>   'readline',
-   '?'      =>   'help'
+   ':'      =>  'read_command',
+   'g'      =>  'send_prefix',
+   'Q'      =>  'quit',
+   'e'      =>  'edit_text',
+   'r'      =>  'raw',
+   'l'      =>  'readline',
+   '?'      =>  'help'
 );
 
 # Commands available for keybinding or in command mode (":")
@@ -130,7 +130,7 @@ my %commands = (
    'help'            =>  \&cmd_show_help,
    'read_command'    =>  \&cmd_read_command,
    'send_prefix'     =>  \&cmd_send_prefix,
-   'edit_text'       =>  \&cmd_edit_text
+   'edit_text'       =>  \&cmd_edit_text,
 );
 
 # Send ^C/^Z instead of killing/suspending process
@@ -182,6 +182,10 @@ sub init {
    for (values(%global_keymap), values(%prefix_keymap)) {
       die "Unknown command: $_\n" if not exists $commands{$_};
    }
+}
+
+sub get_key_obj {
+   return $termkey->parse_key($_[0], 0);
 }
 
 sub send_code {
