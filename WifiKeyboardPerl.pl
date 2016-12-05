@@ -266,11 +266,10 @@ sub read_with_readline {
 
 sub find_binding {
    my ($keymap, $key_obj) = @_;
+   my $keycode = $termkey->format_key($key_obj, 0);
 
    for my $key (keys %$keymap) {
-      if ($key eq $termkey->format_key($key_obj, 0)) {
-         return $keymap->{$key};
-      }
+      return $keymap->{$key} if ($key eq $keycode);
    }
 
    return undef;
