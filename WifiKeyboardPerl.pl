@@ -116,7 +116,7 @@ my %prefix_keymap = (
    's'      =>  'phone_search',
    'm'      =>  'phone_menu',
    'v'      =>  'phone_vol_down',
-   'V'      =>  'phone_vol_up'
+   'V'      =>  'phone_vol_up',
 );
 
 # Commands available for keybinding or in command mode (":")
@@ -131,6 +131,7 @@ my %commands = (
    'phone_search'    =>  sub { send_codes 'D114', 'U114' },
    'phone_vol_up'    =>  sub { send_codes 'D121', 'U121' },
    'phone_vol_down'  =>  sub { send_codes 'D120', 'U120' },
+   'seq_confirmed'   =>  sub { print "seqConfirmed = $seqConfirmed\n" },
    'help'            =>  \&cmd_show_help,
    'read_command'    =>  \&cmd_read_command,
    'send_prefix'     =>  \&cmd_send_prefix,
@@ -154,7 +155,6 @@ sub init {
    my $src = get($base_url) || die "Could not connect to host: $!";
    $src =~ /seqConfirmed = ([0-9]+)/ or die "Could not extract seqConfirmed";
    $seqConfirmed = $1;
-   printf "INFO: seqConfirmed = $seqConfirmed\n";
 
    $readline = Term::ReadLine->new('');
    $termkey = Term::TermKey->new(\*STDIN);
