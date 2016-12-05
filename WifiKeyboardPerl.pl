@@ -231,7 +231,6 @@ sub send_key {
 
 sub send_string {
    for (split(//, $_[0])) {
-      print "$_\n";
       send_codes('C'.ord($_));
    }
 }
