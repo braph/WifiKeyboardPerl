@@ -321,7 +321,7 @@ sub cmd_show_help {
    print "\nPrefix keys\n";
    print "\t$_: $prefix_keymap{$_}\n" for (keys %prefix_keymap);
    print "\nAvailable commands\n";
-   print "\t:$_\n" for (keys %commands);
+   print "\t:$_\n" for (sort keys %commands);
    print "\n";
    $termkey->stop(); # redraw prompt
 }
