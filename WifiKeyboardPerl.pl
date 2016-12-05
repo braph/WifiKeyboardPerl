@@ -39,7 +39,6 @@ eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
 # - add configuration file??
 # - make this thing working with unicode characters in readline mode
 # - cmd_edit_text without wget
-# - implement function for special phone keys
 
 use 5.010001;
 use strict;
@@ -95,13 +94,6 @@ my %wifi_keyboard_mapping = (
    'End'        =>  35,
    'PageUp'     =>  33,
    'PageDown'   =>  34,
-
-   # special phone keys
-   'PhoneCenter'      =>  112,  # F1
-   'PhoneMenu'        =>  113,  # F2
-   'PhoneSearch'      =>  114,  # F3
-   'PhoneVolumeUp'    =>  120,  # F9
-   'PhoneVolumeDown'  =>  121,  # F10
 );
 
 # Global keybindings
@@ -118,7 +110,13 @@ my %prefix_keymap = (
    'e'      =>  'edit_text',
    'r'      =>  'raw',
    'l'      =>  'readline',
-   '?'      =>  'help'
+   '?'      =>  'help',
+
+   'DEL'    =>  'phone_back',
+   's'      =>  'phone_search',
+   'm'      =>  'phone_menu',
+   'v'      =>  'phone_vol_down',
+   'V'      =>  'phone_vol_up'
 );
 
 # Commands available for keybinding or in command mode (":")
@@ -127,6 +125,12 @@ my %commands = (
    'readline'        =>  sub { $options{mode} = 'readline'; },
    'exit'            =>  sub { exit(0); },
    'quit'            =>  sub { exit(0); },
+   'phone_back'      =>  sub { send_codes 'D27', 'U27' },
+   'phone_center'    =>  sub { send_codes 'D112', 'U112' },
+   'phone_menu'      =>  sub { send_codes 'D113', 'U113' },
+   'phone_search'    =>  sub { send_codes 'D114', 'U114' },
+   'phone_vol_up'    =>  sub { send_codes 'D121', 'U121' },
+   'phone_vol_down'  =>  sub { send_codes 'D120', 'U120' },
    'help'            =>  \&cmd_show_help,
    'read_command'    =>  \&cmd_read_command,
    'send_prefix'     =>  \&cmd_send_prefix,
@@ -158,12 +162,7 @@ sub init {
 
    # normalize (and check) keymap
    %wifi_keyboard_mapping = map {
-      # "phone keys" are unknown to TermKey
-      if (/^Phone/) {
-         $_ => $wifi_keyboard_mapping{$_};
-      } else {
-         normalize_keycode($_) => $wifi_keyboard_mapping{$_};
-      }
+      normalize_keycode($_) => $wifi_keyboard_mapping{$_};
    } keys %wifi_keyboard_mapping;
 
    # same for raw keymap ...
@@ -285,7 +284,7 @@ sub read_raw {
       $termkey->is_started() or do { 
          $termkey->start();
          select(STDOUT); $|++;
-         print "$PROGNAME [raw] > ";
+         print "\r$PROGNAME [raw] > ";
       };
 
       $termkey->waitkey($key);
@@ -299,6 +298,8 @@ sub read_raw {
          } else {
             print("Unknown key in prefix_keymap: ", $termkey->format_key($key, 0), "\n");
          }
+
+         $termkey->stop();
       }
       elsif ($termkey->format_key($key, 0) eq $options{prefix}) {
          $prefix_mode = 1;
