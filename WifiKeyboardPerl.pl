@@ -236,10 +236,11 @@ sub send_string {
 }
 
 sub read_with_readline {
-   print "\n\nReadline mode.\nIf you want to insert a newline, write '\\n'.\n";
-   print "If you want so send the message (e.g. in messenger) press enter on empty line.\n\n";
-
-   $termkey->is_started() and $termkey->stop();
+   if ($termkey->is_started()) {
+      print "\n\nReadline mode.\nIf you want to insert a newline, write '\\n'.\n";
+      print "If you want so send the message (e.g. in messenger) press enter on empty line.\n\n";
+      $termkey->stop();
+   }
 
    my $line = $readline->readline("$PROGNAME [readline] > ");
 
