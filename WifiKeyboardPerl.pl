@@ -71,9 +71,9 @@ my ($seqConfirmed, $base_url, $readline, $termkey);
 sub send_key;
 sub send_codes;
 sub send_string;
-sub cmd_read_command;
-sub cmd_send_prefix;
 sub cmd_edit_text;
+sub cmd_send_prefix;
+sub cmd_read_command;
 
 my $WIFI_CNTRL = 17;
 my $WIFI_ALT   = 18;
@@ -81,7 +81,7 @@ my $WIFI_ALT   = 18;
 my %wifi_keyboard_mapping = (
    'DEL'        =>  8,        # Backspace
    'Tab'        =>  9,
-   'Escape'     =>  'C27', 
+   'Escape'     =>  'C27',    
    'Enter'      =>  13,       # 10?
 
    'Up'         =>  38,
@@ -131,6 +131,7 @@ my %commands = (
    'read_command'    =>  \&cmd_read_command,
    'send_prefix'     =>  \&cmd_send_prefix,
    'edit_text'       =>  \&cmd_edit_text,
+   'send_codes'      =>  \&send_codes
 );
 
 # Send ^C/^Z instead of killing/suspending process
@@ -254,8 +255,9 @@ sub read_with_readline {
    if (! $line) {
       send_codes('D13', 'U13');
    }
-   elsif ($line =~ /^:([a-zA-Z_-]+)$/) {
-      ($commands{$1} || sub { print "Command not found: $1\n" })->();
+   elsif ($line =~ /^:([a-zA-Z_-]+)(.*)$/) {
+      my @args = grep { $_ } split(/ /, $2);
+      ($commands{$1} || sub { print "Command not found: $1\n" })->(@args);
    }
    else {
       $line =~ s/\\n/\n/g;
