@@ -208,7 +208,6 @@ sub send_key {
       }
       else {
          # send as key press
-         print("sending!\n");
          send_codes('D'.$wifi_keyboard_mapping{$keycode},
                     'U'.$wifi_keyboard_mapping{$keycode});
      }
