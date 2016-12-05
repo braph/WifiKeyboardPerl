@@ -118,6 +118,7 @@ my %prefix_keymap = (
    'e'      =>   'edit_text',
    'r'      =>   'raw',
    'l'      =>   'readline',
+   '?'      =>   'help'
 );
 
 # Commands available for keybinding or in command mode (":")
@@ -126,6 +127,7 @@ my %commands = (
    'readline'        =>  sub { $options{mode} = 'readline'; },
    'exit'            =>  sub { exit(0); },
    'quit'            =>  sub { exit(0); },
+   'help'            =>  \&cmd_show_help,
    'read_command'    =>  \&cmd_read_command,
    'send_prefix'     =>  \&cmd_send_prefix,
    'edit_text'       =>  \&cmd_edit_text
@@ -147,6 +149,7 @@ sub init {
    my $src = get($base_url) || die "Could not connect to host: $!";
    $src =~ /seqConfirmed = ([0-9]+)/ or die "Could not extract seqConfirmed";
    $seqConfirmed = $1;
+   printf "INFO: seqConfirmed = $seqConfirmed\n";
 
    $readline = Term::ReadLine->new('');
    $termkey = Term::TermKey->new(\*STDIN);
@@ -201,6 +204,7 @@ sub send_key {
       }
       else {
          # send as key press
+         print("sending!\n");
          send_codes('D'.$wifi_keyboard_mapping{$keycode},
                     'U'.$wifi_keyboard_mapping{$keycode});
      }
@@ -303,6 +307,19 @@ sub read_raw {
    }
 }
 
+sub cmd_show_help {
+   print "\n";
+   print "\nPrefix key is: $options{prefix}\n";
+   print "\nGlobal keys\n";
+   print "\t$_: $global_keymap{$_}\n" for (keys %global_keymap);
+   print "\nPrefix keys\n";
+   print "\t$_: $prefix_keymap{$_}\n" for (keys %prefix_keymap);
+   print "\nAvailable commands\n";
+   print "\t:$_\n" for (keys %commands);
+   print "\n";
+   $termkey->stop(); # redraw prompt
+}
+
 sub cmd_read_command {
    $termkey->is_started() and $termkey->stop();
    my $command = $readline->readline("$PROGNAME [command]: ");
@@ -351,6 +368,9 @@ die "Option --mode must be either 'raw' or 'readline'"
    unless ($options{mode} eq 'raw' or $options{mode} eq 'readline');
 
 init();
+
+print "\nType keys '$options{prefix}' + '$_' for help\n\n"
+   for (grep { $prefix_keymap{$_} eq 'help' } keys %prefix_keymap);
 
 while () {
    if ($options{mode} eq 'raw') {
