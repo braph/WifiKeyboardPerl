@@ -58,7 +58,7 @@ $main::VERSION = 0.1;
 my %options = (
    host   => 0,
    port   => 7777,
-   mode   => 'raw',
+   mode   => 'readline',
    prefix => 'C-g',
    editor => $ENV{EDITOR},
 );
@@ -374,8 +374,13 @@ die "Option --mode must be either 'raw' or 'readline'"
 
 init();
 
-print "\nType keys '$options{prefix}' + '$_' for help\n\n"
-   for (grep { $prefix_keymap{$_} eq 'help' } keys %prefix_keymap);
+if ($options{mode} eq 'raw') {
+   print "\nType keys '$options{prefix}' + '$_' for help\n\n"
+      for (grep { $prefix_keymap{$_} eq 'help' } keys %prefix_keymap);
+}
+else {
+   print "\nType ':help' for help\n\n";
+}
 
 while () {
    if ($options{mode} eq 'raw') {
