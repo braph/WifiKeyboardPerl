@@ -47,7 +47,7 @@ use warnings;
 use utf8;
 use LWP::Simple;
 use LWP::UserAgent;
-use Term::TermKey;
+use Term::TermKey qw(FORMAT_LONGMOD FORMAT_WRAPBRACKET FORMAT_CARETCTRL);
 use Term::ReadLine;
 use FindBin qw($Script);
 use File::Temp qw(tempfile);
@@ -61,6 +61,30 @@ my %options = (
    mode   => 'readline',
    prefix => 'C-g',
    editor => $ENV{EDITOR},
+
+   # Global keybindings (only in raw mode)
+   global_keybindings => {
+      # key => command_name
+      '^D'     =>  'quit'
+   },
+
+   # Keybindings with prefix (only in raw mode)
+   prefix_keybindings => {
+      # key => command_name
+      ':'      =>  'read_command',
+      'g'      =>  'send_prefix',
+      'Q'      =>  'quit',
+      'e'      =>  'edit_text',
+      'r'      =>  'raw',
+      'l'      =>  'readline',
+      '?'      =>  'help',
+
+      'DEL'    =>  'phone_back',
+      's'      =>  'phone_search',
+      'm'      =>  'phone_menu',
+      'v'      =>  'phone_vol_down',
+      'V'      =>  'phone_vol_up',
+   },
 );
 
 # global variables
@@ -96,29 +120,6 @@ my %wifi_keyboard_mapping = (
    'PageDown'   =>  34,
 );
 
-# Global keybindings
-my %global_keymap = (
-   # key => command_name
-);
-
-# Keybindings with prefixx
-my %prefix_keymap = (
-   # key => command_name
-   ':'      =>  'read_command',
-   'g'      =>  'send_prefix',
-   'Q'      =>  'quit',
-   'e'      =>  'edit_text',
-   'r'      =>  'raw',
-   'l'      =>  'readline',
-   '?'      =>  'help',
-
-   'DEL'    =>  'phone_back',
-   's'      =>  'phone_search',
-   'm'      =>  'phone_menu',
-   'v'      =>  'phone_vol_down',
-   'V'      =>  'phone_vol_up',
-);
-
 # Commands available for keybinding or in command mode (":")
 my %commands = (
    'raw'             =>  sub { $options{mode} = 'raw';  },
@@ -144,8 +145,13 @@ $SIG{INT}  = sub { send_codes("D$WIFI_CNTRL", "D".ord('C'), "U".ord('C'), "U$WIF
 $SIG{STOP} = sub { send_codes("D$WIFI_CNTRL", "D".ord('Z'), "U".ord('Z'), "U$WIFI_CNTRL"); };
 
 sub normalize_keycode {
-   my $code = $termkey->parse_key($_[0], 0) or 
-      die "Invalid key: $_[0]\n";
+   my $code = (
+      $termkey->parse_key($_[0], 0) or 
+      $termkey->parse_key($_[0], FORMAT_LONGMOD) or
+      $termkey->parse_key($_[0], FORMAT_CARETCTRL) or
+      $termkey->parse_key($_[0], FORMAT_WRAPBRACKET) or
+      die "Invalid key: $_[0]\n"
+   );
    return $termkey->format_key($code, 0);
 }
 
@@ -166,20 +172,20 @@ sub init {
    } keys %wifi_keyboard_mapping;
 
    # same for raw keymap ...
-   %global_keymap = map {
-      normalize_keycode($_) => $global_keymap{$_};
-   } keys %global_keymap;
+   %{$options{global_keybindings}} = map {
+      normalize_keycode($_) => $options{global_keybindings}->{$_};
+   } keys %{$options{global_keybindings}};
 
    # ... and prefix keymap ...
-   %prefix_keymap = map {
-      normalize_keycode($_) => $prefix_keymap{$_};
-   } keys %prefix_keymap;
+   %{$options{prefix_keybindings}} = map {
+      normalize_keycode($_) => $options{prefix_keybindings}->{$_};
+   } keys %{$options{prefix_keybindings}};
 
    # ... and prefix key
    $options{prefix} = normalize_keycode($options{prefix});
 
    # check if commands given in keymaps exist
-   for (values(%global_keymap), values(%prefix_keymap)) {
+   for (values(%{$options{global_keybindings}}), values(%{$options{prefix_keybindings}})) {
       die "Unknown command: $_\n" if not exists $commands{$_};
    }
 }
@@ -291,7 +297,7 @@ sub read_raw {
       if ($prefix_mode) {
          $prefix_mode = 0;
 
-         my $command_name = find_binding(\%prefix_keymap, $key);
+         my $command_name = find_binding($options{prefix_keybindings}, $key);
          if ($command_name) {
             $commands{$command_name}->();
          } else {
@@ -303,7 +309,7 @@ sub read_raw {
       elsif ($termkey->format_key($key, 0) eq $options{prefix}) {
          $prefix_mode = 1;
       }
-      elsif ((my $command_name = find_binding(\%global_keymap, $key))) {
+      elsif ((my $command_name = find_binding($options{global_keybindings}, $key))) {
          $commands{$command_name}->();
       }
       else {
@@ -316,9 +322,9 @@ sub cmd_show_help {
    print "\n";
    print "\nPrefix key is: $options{prefix}\n";
    print "\nGlobal keys\n";
-   print "\t$_: $global_keymap{$_}\n" for (keys %global_keymap);
+   print "\t$_: $options{global_keybindings}->{$_}\n" for (keys %{$options{global_keybindings}});
    print "\nPrefix keys\n";
-   print "\t$_: $prefix_keymap{$_}\n" for (keys %prefix_keymap);
+   print "\t$_: $options{prefix_keybindings}->{$_}\n" for (keys %{$options{prefix_keybindings}});
    print "\nAvailable commands\n";
    print "\t:$_\n" for (sort keys %commands);
    print "\n";
@@ -332,7 +338,7 @@ sub cmd_read_command {
 }
 
 sub cmd_send_prefix {
-   send_key($termkey->parse_key($options{prefix}, 0));
+   send_key(get_key_obj($options{prefix}));
 }
 
 sub cmd_edit_text {
@@ -368,15 +374,15 @@ GetOptions(\%options,
    }
 ) or exit 1;
 
-die "Missing --host\n" unless $options{host};
-die "Option --mode must be either 'raw' or 'readline'" 
+die "Missing -h|--host\n" unless $options{host};
+die "Option -m|--mode must be either 'raw' or 'readline'" 
    unless ($options{mode} eq 'raw' or $options{mode} eq 'readline');
 
 init();
 
 if ($options{mode} eq 'raw') {
    print "\nType keys '$options{prefix}' + '$_' for help\n\n"
-      for (grep { $prefix_keymap{$_} eq 'help' } keys %prefix_keymap);
+      for (grep { $options{prefix_keybindings}->{$_} eq 'help' } keys %{$options{prefix_keybindings}});
 }
 else {
    print "\nType ':help' for help\n\n";
