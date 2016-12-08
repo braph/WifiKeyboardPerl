@@ -49,10 +49,10 @@ use LWP::Simple;
 use LWP::UserAgent;
 use Term::TermKey;
 use Term::ReadLine;
+use FindBin qw($Script);
 use File::Temp qw(tempfile);
 use Getopt::Long qw(:config gnu_getopt auto_version);
 
-my $PROGNAME = 'WifiKeyboardPerl';
 $main::VERSION = 0.1;
 
 my %options = (
@@ -249,7 +249,7 @@ sub read_with_readline {
       $termkey->stop();
    }
 
-   my $line = $readline->readline("$PROGNAME [readline] > ");
+   my $line = $readline->readline("$Script [readline] > ");
 
    if (! $line) {
       send_codes('D13', 'U13');
@@ -283,7 +283,7 @@ sub read_raw {
       $termkey->is_started() or do { 
          $termkey->start();
          select(STDOUT); $|++;
-         print "\r$PROGNAME [raw] > ";
+         print "\r$Script [raw] > ";
       };
 
       $termkey->waitkey($key);
@@ -327,7 +327,7 @@ sub cmd_show_help {
 
 sub cmd_read_command {
    $termkey->is_started() and $termkey->stop();
-   my $command = $readline->readline("$PROGNAME [command]: ");
+   my $command = $readline->readline("$Script [command]: ");
    ($commands{$command} || sub { print "Command not found: $command\n" })->();
 }
 
