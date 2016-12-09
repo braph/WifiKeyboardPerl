@@ -47,7 +47,7 @@ use warnings;
 use utf8;
 use LWP::Simple;
 use LWP::UserAgent;
-use Term::TermKey qw(FORMAT_LONGMOD FORMAT_WRAPBRACKET FORMAT_CARETCTRL);
+use Term::TermKey qw(FORMAT_LONGMOD FORMAT_WRAPBRACKET FORMAT_CARETCTRL FLAG_NOINTERPRET);
 use Term::ReadLine;
 use FindBin qw($Script);
 use File::Temp qw(tempfile);
@@ -163,7 +163,7 @@ sub init {
    $seqConfirmed = $1;
 
    $readline = Term::ReadLine->new('');
-   $termkey = Term::TermKey->new(\*STDIN);
+   $termkey = Term::TermKey->new(\*STDIN, FLAG_NOINTERPRET);
    $termkey->stop(); # display prompt in read_raw()
 
    # normalize (and check) keymap
