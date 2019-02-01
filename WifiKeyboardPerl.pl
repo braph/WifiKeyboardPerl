@@ -54,6 +54,7 @@ use File::Temp qw(tempfile);
 use Getopt::Long qw(:config gnu_getopt auto_version);
 
 $main::VERSION = 0.1;
+$Script =~ s/\..*$//;
 
 my %options = (
    host   => 0,
@@ -65,7 +66,7 @@ my %options = (
    # Global keybindings (only in raw mode)
    global_keybindings => {
       # key => command_name
-      '^D'     =>  'quit'
+      #'^D'     =>  'quit'
    },
 
    # Keybindings with prefix (only in raw mode)
@@ -141,7 +142,9 @@ my %commands = (
 );
 
 # Send ^C/^Z instead of killing/suspending process
-$SIG{INT}  = sub { send_codes("D$WIFI_CNTRL", "D".ord('C'), "U".ord('C'), "U$WIFI_CNTRL"); };
+#$SIG{INT}  = sub { send_codes("D$WIFI_CNTRL", "D".ord('C'), "U".ord('C'), "U$WIFI_CNTRL"); };
+#$SIG{STOP} = sub { send_codes("D$WIFI_CNTRL", "D".ord('Z'), "U".ord('Z'), "U$WIFI_CNTRL"); };
+$SIG{INT}  = sub { send_codes("C3"); };
 $SIG{STOP} = sub { send_codes("D$WIFI_CNTRL", "D".ord('Z'), "U".ord('Z'), "U$WIFI_CNTRL"); };
 
 sub normalize_keycode {
@@ -255,7 +258,7 @@ sub read_with_readline {
       $termkey->stop();
    }
 
-   my $line = $readline->readline("$Script [readline] > ");
+   my $line = $readline->readline("$Script [readline] [:help] > ");
 
    if (! $line) {
       send_codes('D13', 'U13');
@@ -281,6 +284,19 @@ sub find_binding {
    return undef;
 }
 
+sub find_command {
+   # search binding for command
+   my ($command) = @_;
+
+   #To
+   for my $key (keys %{ $options{prefix_keybindings} }) {
+      if ($options{prefix_keybindings}->{$key} eq $command) {
+         return $options{prefix} . ' ' . $key;
+      }
+   }
+   #global_keybindings => {
+}
+
 sub read_raw {
    my $key;
    my $prefix_mode = 0;
@@ -289,7 +305,8 @@ sub read_raw {
       $termkey->is_started() or do { 
          $termkey->start();
          select(STDOUT); $|++;
-         print "\r$Script [raw] > ";
+         my $helpBinding = find_command('help');
+         print "\r$Script [raw] (help: $helpBinding) > ";
       };
 
       $termkey->waitkey($key);
@@ -328,6 +345,7 @@ sub cmd_show_help {
    print "\nAvailable commands\n";
    print "\t:$_\n" for (sort keys %commands);
    print "\n";
+   print "Use send_codes C1, C2, C3 for ^A, ^B, ^C\n";
    $termkey->stop(); # redraw prompt
 }
 
